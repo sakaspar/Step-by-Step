@@ -11,10 +11,10 @@ module.exports = {
       accounts: [process.env.privateKey],
     },
     aurora_testnet: {
-      url: `https://testnet.aurora.dev`,
+      url: `https://aurora-testnet.drpc.org`,
       accounts: [process.env.privateKey],
       chainId: 1313161555,
-      timeout: 60000, // Increase timeout to 60 seconds
+      timeout: 60000,
     },
     aurora_testnet_alt: {
       url: `https://aurora-testnet.public.blastapi.io`,
