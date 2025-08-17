@@ -15,8 +15,6 @@ module.exports = {
       accounts: [process.env.privateKey],
       chainId: 1313161555,
       timeout: 60000, // Increase timeout to 60 seconds
-      gas: 2100000,
-      gasPrice: 8000000000,
     },
     aurora_testnet_alt: {
       url: `https://aurora-testnet.public.blastapi.io`,

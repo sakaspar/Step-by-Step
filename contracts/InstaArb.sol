@@ -27,11 +27,21 @@ interface IUniswapV2Pair {
   function swap(uint256 amount0Out,	uint256 amount1Out,	address to,	bytes calldata data) external;
 }
 
+interface IWETH is IERC20 {
+    function deposit() external payable;
+    function withdraw(uint) external;
+}
+
 contract InstaArb is Ownable {
 
+  address public wethAddress;
   address [] public routers;
   address [] public tokens;
   address [] public stables;
+
+  constructor(address _wethAddress) {
+    wethAddress = _wethAddress;
+  }
 
   function addRouters(address[] calldata _routers) external onlyOwner {
     for (uint i=0; i<_routers.length; i++) {
@@ -80,7 +90,7 @@ contract InstaArb is Ownable {
     return amtBack2;
   }
   
-  function dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) external onlyOwner {
+  function _dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) private {
     uint startBalance = IERC20(_token1).balanceOf(address(this));
     uint token2InitialBalance = IERC20(_token2).balanceOf(address(this));
     swap(_router1,_token1, _token2,_amount);
@@ -90,6 +100,24 @@ contract InstaArb is Ownable {
     uint endBalance = IERC20(_token1).balanceOf(address(this));
     require(endBalance > startBalance, "Trade Reverted, No Profit Made");
   }
+
+  function dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) external onlyOwner {
+      _dualDexTrade(_router1, _router2, _token1, _token2, _amount);
+  }
+
+  function dualDexTradeEth(address _router1, address _router2, address _token2) external payable onlyOwner {
+    require(msg.value > 0, "ETH amount must be > 0");
+    IWETH(wethAddress).deposit{value: msg.value}();
+
+    _dualDexTrade(_router1, _router2, wethAddress, _token2, msg.value);
+
+    uint wethBalance = IERC20(wethAddress).balanceOf(address(this));
+    if (wethBalance > 0) {
+        IWETH(wethAddress).withdraw(wethBalance);
+    }
+  }
+
+  receive() external payable {}
 
   /*
     Base Asset > Altcoin > Stablecoin > Altcoin > Base Asset

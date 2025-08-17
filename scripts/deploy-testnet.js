@@ -17,18 +17,12 @@ async function main() {
   
   console.log("✅ Sufficient balance, deploying contracts...");
   
-  const contractName = 'Arb';
-  await hre.run("compile");
-  const smartContract = await hre.ethers.getContractFactory(contractName);
-  const contract = await smartContract.deploy();
-  await contract.deployed();
-  console.log(`${contractName} deployed to: ${contract.address}`); 
-  console.log('Put the above contract address into the .env file under arbContract');
-  
   // Deploy InstaArb
+  const config = require('../config/aurora-testnet.json');
+  const wethAddress = config.baseAssets.find(asset => asset.sym === 'eth').address;
   const instaContractName = 'InstaArb';
   const instaSmartContract = await hre.ethers.getContractFactory(instaContractName);
-  const instaContract = await instaSmartContract.deploy();
+  const instaContract = await instaSmartContract.deploy(wethAddress);
   await instaContract.deployed();
   console.log(`${instaContractName} deployed to: ${instaContract.address}`);
   console.log('Put the above contract address into the .env file under instaArbContract');

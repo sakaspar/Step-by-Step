@@ -77,18 +77,12 @@ const checkBalances = async () => {
     const asset = config.baseAssets[i];
     
     try {
-      if (asset.address === "0x0000000000000000000000000000000000000000") {
-        // Handle ETH balance
-        const balance = await ethers.provider.getBalance(config.arbContract);
-        console.log(`${asset.sym}: ${ethers.utils.formatEther(balance)} ETH (${balance.toString()} wei)`);
-      } else {
-        // Handle ERC-20 tokens with proper interface
-        try {
-          const balance = await getTokenBalance(asset.address, config.arbContract);
-          console.log(`${asset.sym}: ${ethers.utils.formatEther(balance)} (${balance.toString()} wei)`);
-        } catch (error) {
-          console.log(`${asset.sym}: ⚠️ Error checking balance - ${error.message}`);
-        }
+      // Handle ERC-20 tokens with proper interface
+      try {
+        const balance = await getTokenBalance(asset.address, config.arbContract);
+        console.log(`${asset.sym}: ${ethers.utils.formatEther(balance)} (${balance.toString()} wei)`);
+      } catch (error) {
+        console.log(`${asset.sym}: ⚠️ Error checking balance - ${error.message}`);
       }
     } catch (error) {
       console.log(`${asset.sym}: ❌ Failed to check balance - ${error.message}`);
@@ -126,18 +120,13 @@ const lookForArbitrage = async () => {
       // Get current balance for token1 (which we now know is a valid base asset)
       let token1Balance;
       
-      if (token1 === "0x0000000000000000000000000000000000000000") {
-        // ETH balance
-        token1Balance = await ethers.provider.getBalance(config.arbContract);
-      } else {
-        // ERC-20 token balance - use safe method
-        try {
-          token1Balance = await getTokenBalance(token1, config.arbContract);
-        } catch (error) {
-          console.log(`   ⚠️ Skipping route ${i + 1} - Cannot check balance for token ${token1}: ${error.message}`);
-          skippedRoutes++;
-          continue;
-        }
+      // ERC-20 token balance - use safe method
+      try {
+        token1Balance = await getTokenBalance(token1, config.arbContract);
+      } catch (error) {
+        console.log(`   ⚠️ Skipping route ${i + 1} - Cannot check balance for token ${token1}: ${error.message}`);
+        skippedRoutes++;
+        continue;
       }
       
       // Skip if no balance
@@ -231,13 +220,28 @@ const lookForArbitrage = async () => {
     console.log(`\n🚀 Executing best trade with ${bestRoute.profitBps.toString()} bps profit...`);
     
     try {
-      const tx = await arb.connect(owner).dualDexTrade(
-        bestRoute.route[0],
-        bestRoute.route[1], 
-        bestRoute.route[2],
-        bestRoute.route[3],
-        bestRoute.tradeSize
-      );
+      const [router1, router2, token1, token2] = bestRoute.route;
+      const wethAddress = config.baseAssets.find(asset => asset.sym === 'eth').address;
+
+      let tx;
+      if (token1.toLowerCase() === wethAddress.toLowerCase()) {
+        console.log("Executing ETH trade");
+        tx = await arb.connect(owner).dualDexTradeEth(
+          router1,
+          router2,
+          token2,
+          { value: bestRoute.tradeSize }
+        );
+      } else {
+        console.log("Executing ERC20 trade");
+        tx = await arb.connect(owner).dualDexTrade(
+          router1,
+          router2,
+          token1,
+          token2,
+          bestRoute.tradeSize
+        );
+      }
       
       console.log(`📝 Transaction submitted: ${tx.hash}`);
       const receipt = await tx.wait();
