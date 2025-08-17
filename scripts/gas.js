@@ -4,8 +4,18 @@ require("dotenv").config();
 
 let config,arb,owner;
 const network = hre.network.name;
-if (network === 'aurora') config = require('./../config/aurora.json');
-if (network === 'fantom') config = require('./../config/fantom.json');
+// Load config based on network
+if (network === 'aurora') {
+	config = require('../config/aurora.json');
+  } else if (network === 'fantom') {
+	config = require('../config/fantom.json');
+  } else if (network === 'aurora_testnet') {
+	try {
+	  config = require('../config/aurora-testnet.json');
+	} catch (e) {
+	  config = require('../config/aurora.json');
+	}
+  }
 
 const main = async () => {
 	[owner] = await ethers.getSigners();
